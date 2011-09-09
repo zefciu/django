@@ -374,11 +374,16 @@ class Model(object):
             u = unicode(self)
         except (UnicodeEncodeError, UnicodeDecodeError):
             u = '[Bad Unicode data]'
-        return smart_str(u'<%s: %s>' % (self.__class__.__name__, u))
+        if sys.version_info < (3,0):
+            return smart_str(u'<%s: %s>' % (self.__class__.__name__, u))
+        else:
+            return '<%s: %s>' % (self.__class__.__name__, u)
 
     def __str__(self):
         if hasattr(self, '__unicode__'):
-            return force_unicode(self).encode('utf-8')
+            if sys.version_info < (3,0):
+                return force_unicode(self).encode('utf-8')
+            return force_unicode(self)
         return '%s object' % self.__class__.__name__
 
     def __eq__(self, other):

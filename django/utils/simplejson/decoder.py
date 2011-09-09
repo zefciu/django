@@ -1,6 +1,7 @@
 """Implementation of JSONDecoder
 """
 import re
+from binascii import unhexlify
 import sys
 import struct
 
@@ -12,7 +13,7 @@ __all__ = ['JSONDecoder']
 FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
 
 def _floatconstants():
-    _BYTES = '7FF80000000000007FF0000000000000'.decode('hex')
+    _BYTES = unhexlify('7FF80000000000007FF0000000000000')
     if sys.byteorder != 'big':
         _BYTES = _BYTES[:8][::-1] + _BYTES[8:][::-1]
     nan, inf = struct.unpack('dd', _BYTES)

@@ -62,9 +62,12 @@ class BaseContext(object):
             if key in d:
                 return True
         return False
+    _has_key = has_key
 
     def __contains__(self, key):
-        return self.has_key(key)
+        # 2to3 fixes  "self.has_key(key)" to "key in self",
+        # causing infinite recursion
+        return self._has_key(key)
 
     def get(self, key, otherwise=None):
         for d in reversed(self.dicts):

@@ -1,3 +1,4 @@
+import sys
 import re
 import urllib2
 import urlparse
@@ -16,6 +17,18 @@ try:
 except ImportError:
     # It's OK if Django settings aren't configured.
     URL_VALIDATOR_USER_AGENT = 'Django (http://www.djangoproject.com/)'
+
+###############################################
+# Converters from a byte objects to strings #
+###############################################
+
+def py3_string_conversion(s):
+    # Convert byte s, if any, to str
+    if not isinstance(s, str) and sys.version_info >= (3,):
+        s = str(s, encoding='utf8')
+    return s
+
+###############################################
 
 class RegexValidator(object):
     regex = ''
@@ -60,6 +73,7 @@ class URLValidator(RegexValidator):
         self.user_agent = validator_user_agent
 
     def __call__(self, value):
+        import urllib
         try:
             super(URLValidator, self).__call__(value)
         except ValidationError, e:
@@ -69,6 +83,9 @@ class URLValidator(RegexValidator):
                 scheme, netloc, path, query, fragment = urlparse.urlsplit(value)
                 try:
                     netloc = netloc.encode('idna') # IDN -> ACE
+                    
+                    # only encode netloc to str in Py3.x
+                    netloc = py3_string_conversion(netloc)
                 except UnicodeError: # invalid domain part
                     raise e
                 url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
@@ -127,6 +144,9 @@ class EmailValidator(RegexValidator):
                 domain_part = parts[-1]
                 try:
                     parts[-1] = parts[-1].encode('idna')
+
+                    # only encode parts[-1] to str in Py3.x
+                    parts[-1] = py3_string_conversion(parts[-1])
                 except UnicodeError:
                     raise e
                 super(EmailValidator, self).__call__(u'@'.join(parts))

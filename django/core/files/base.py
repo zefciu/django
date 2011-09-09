@@ -1,8 +1,11 @@
-import os
+import os, sys
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+if sys.version_info >= (3,0):
+    # In 3.x, assume that these memory files are byte-oriented
+    from io import BytesIO as StringIO
 
 from django.utils.encoding import smart_str, smart_unicode
 from django.core.files.utils import FileProxyMixin

@@ -1,3 +1,4 @@
+import sys
 import types
 import urllib
 import locale
@@ -5,6 +6,7 @@ import datetime
 import codecs
 from decimal import Decimal
 
+from django.utils.py3 import bytes, b
 from django.utils.functional import Promise
 
 class DjangoUnicodeDecodeError(UnicodeDecodeError):
@@ -23,8 +25,12 @@ class StrAndUnicode(object):
 
     Useful as a mix-in.
     """
-    def __str__(self):
-        return self.__unicode__().encode('utf-8')
+    if sys.version_info < (3,0):
+        def __str__(self):
+            return self.__unicode__().encode('utf-8')
+    else:
+        def __str__(self):
+            return self.__unicode__()
 
 def smart_unicode(s, encoding='utf-8', strings_only=False, errors='strict'):
     """
@@ -66,12 +72,19 @@ def force_unicode(s, encoding='utf-8', strings_only=False, errors='strict'):
     if strings_only and is_protected_type(s):
         return s
     try:
-        if not isinstance(s, basestring,):
+        # 2to3 fixes basestring into str, dropping support for bytes
+        if not isinstance(s, (bytes, unicode)):
             if hasattr(s, '__unicode__'):
-                s = unicode(s)
+                s = s.__unicode__()
             else:
                 try:
-                    s = unicode(str(s), encoding, errors)
+                    if sys.version_info >= (3,0):
+                        if isinstance(s, bytes):
+                            s = str(s, encoding, errors)
+                        else:
+                            s = str(s)
+                    else:
+                        s = unicode(str(s), encoding, errors)
                 except UnicodeEncodeError:
                     if not isinstance(s, Exception):
                         raise
@@ -101,6 +114,16 @@ def force_unicode(s, encoding='utf-8', strings_only=False, errors='strict'):
                     errors) for arg in s])
     return s
 
+# How to convert arbitrary objects to bytes?
+# 2.x: just call str()
+# 3.x: convert to str (i.e. Unicode), and encode
+if sys.version_info < (3,0):
+    def _str_convert(obj, encoding):
+        return str(obj)
+else:
+    def _str_convert(obj, encoding):
+        return str(obj).encode(encoding)
+
 def smart_str(s, encoding='utf-8', strings_only=False, errors='strict'):
     """
     Returns a bytestring version of 's', encoded as specified in 'encoding'.
@@ -113,7 +136,7 @@ def smart_str(s, encoding='utf-8', strings_only=False, errors='strict'):
         return unicode(s).encode(encoding, errors)
     elif not isinstance(s, basestring):
         try:
-            return str(s)
+            return _str_convert(s, encoding)
         except UnicodeEncodeError:
             if isinstance(s, Exception):
                 # An Exception subclass containing non-ASCII data that doesn't
@@ -128,6 +151,13 @@ def smart_str(s, encoding='utf-8', strings_only=False, errors='strict'):
         return s.decode('utf-8', errors).encode(encoding, errors)
     else:
         return s
+
+# smart_kw: convert into datatype for keyword arguments
+# smart_text: convert into "text" type (e.g. for output on sys.stdout)
+if sys.version_info < (3,0):
+    smart_text = smart_str
+else:
+    smart_text = smart_unicode
 
 def iri_to_uri(iri):
     """
@@ -154,7 +184,7 @@ def iri_to_uri(iri):
     # converted.
     if iri is None:
         return iri
-    return urllib.quote(smart_str(iri), safe="/#%[]=:;$&()+,!?*@'~")
+    return urllib.quote(smart_str(iri), safe=b("/#%[]=:;$&()+,!?*@'~"))
 
 def filepath_to_uri(path):
     """Convert an file system path to a URI portion that is suitable for

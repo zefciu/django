@@ -1,4 +1,4 @@
-import os
+import os, sys
 import gettext as gettext_module
 
 from django import http
@@ -52,6 +52,10 @@ def get_formats():
             result[attr] = get_format(attr)
     src = []
     for k, v in result.items():
+        if sys.version_info >= (3,0):
+            # XXX why is it necessary to javascript_quote the keys, when they are from
+            # FORMAT_SETTINGS, which is all safe?
+            k = k.encode('ascii')
         if isinstance(v, (basestring, int)):
             src.append("formats['%s'] = '%s';\n" % (javascript_quote(k), javascript_quote(smart_unicode(v))))
         elif isinstance(v, (tuple, list)):

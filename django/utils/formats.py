@@ -1,10 +1,11 @@
+import sys
 import decimal
 import datetime
 
 from django.conf import settings
 from django.utils import dateformat, numberformat, datetime_safe
 from django.utils.importlib import import_module
-from django.utils.encoding import smart_str
+from django.utils.encoding import smart_str, smart_unicode
 from django.utils.functional import lazy
 from django.utils.safestring import mark_safe
 from django.utils.translation import get_language, to_locale, check_for_language
@@ -64,7 +65,10 @@ def get_format(format_type, lang=None, use_l10n=None):
     If use_l10n is provided and is not None, that will force the value to
     be localized (or not), overriding the value of settings.USE_L10N.
     """
-    format_type = smart_str(format_type)
+    if sys.version_info < (3,0):
+        format_type = smart_str(format_type)
+    else:
+        format_type = smart_unicode(format_type)
     if use_l10n or (use_l10n is None and settings.USE_L10N):
         if lang is None:
             lang = get_language()
@@ -149,18 +153,22 @@ def localize_input(value, default=None):
     Checks if an input value is a localizable type and returns it
     formatted with the appropriate formatting string of the current locale.
     """
+    if sys.version_info <= (3,0):
+        fmtfun = smart_str
+    else:
+        fmtfun = smart_unicode
     if isinstance(value, (decimal.Decimal, float, int, long)):
         return number_format(value)
     elif isinstance(value, datetime.datetime):
         value = datetime_safe.new_datetime(value)
-        format = smart_str(default or get_format('DATETIME_INPUT_FORMATS')[0])
+        format = fmtfun(default or get_format('DATETIME_INPUT_FORMATS')[0])
         return value.strftime(format)
     elif isinstance(value, datetime.date):
         value = datetime_safe.new_date(value)
-        format = smart_str(default or get_format('DATE_INPUT_FORMATS')[0])
+        format = fmtfun(default or get_format('DATE_INPUT_FORMATS')[0])
         return value.strftime(format)
     elif isinstance(value, datetime.time):
-        format = smart_str(default or get_format('TIME_INPUT_FORMATS')[0])
+        format = fmtfun(default or get_format('TIME_INPUT_FORMATS')[0])
         return value.strftime(format)
     return value
 

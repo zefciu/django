@@ -23,7 +23,9 @@ for app in settings.INSTALLED_APPS:
         raise ImproperlyConfigured('ImportError %s: %s' % (app, e.args[0]))
     template_dir = os.path.join(os.path.dirname(mod.__file__), 'templates')
     if os.path.isdir(template_dir):
-        app_template_dirs.append(template_dir.decode(fs_encoding))
+        if sys.version_info < (3,0):
+            template_dir = template_dir.decode(fs_encoding)
+        app_template_dirs.append(template_dir)
 
 # It won't change, so convert it to a tuple to save memory.
 app_template_dirs = tuple(app_template_dirs)
@@ -52,7 +54,7 @@ class Loader(BaseLoader):
     def load_template_source(self, template_name, template_dirs=None):
         for filepath in self.get_template_sources(template_name, template_dirs):
             try:
-                file = open(filepath)
+                file = open(filepath, 'rb')
                 try:
                     return (file.read().decode(settings.FILE_CHARSET), filepath)
                 finally:

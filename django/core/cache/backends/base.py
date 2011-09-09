@@ -1,4 +1,5 @@
 "Base Cache class."
+import sys
 
 import warnings
 
@@ -157,7 +158,9 @@ class BaseCache(object):
         # This is a separate method, rather than just a copy of has_key(),
         # so that it always has the same functionality as has_key(), even
         # if a subclass overrides it.
-        return self.has_key(key)
+
+        # to cheat 2to3 in not converting this to 'in'
+        return getattr(self, 'has_key')(key) 
 
     def set_many(self, data, timeout=None, version=None):
         """

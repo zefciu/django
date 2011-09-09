@@ -1,6 +1,7 @@
 """
 Creates permissions for all installed apps that need permissions.
 """
+import sys
 import getpass
 import locale
 import unicodedata
@@ -81,6 +82,8 @@ def get_system_username():
     :returns: The username as a unicode string, or an empty string if the
         username could not be determined.
     """
+    if sys.version_info >= (3,):
+        return getpass.getuser()
     try:
         return getpass.getuser().decode(locale.getdefaultlocale()[1])
     except (ImportError, KeyError, UnicodeDecodeError):
@@ -105,7 +108,8 @@ def get_default_username(check_db=True):
     default_username = get_system_username()
     try:
         default_username = unicodedata.normalize('NFKD', default_username)\
-            .encode('ascii', 'ignore').replace(' ', '').lower()
+            .encode('ascii', 'ignore').decode('ascii', 'ignore')\
+            .replace(' ', '').lower()
     except UnicodeDecodeError:
         return ''
     if not RE_VALID_USERNAME.match(default_username):

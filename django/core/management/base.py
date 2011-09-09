@@ -11,7 +11,8 @@ from optparse import make_option, OptionParser
 import django
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.color import color_style
-from django.utils.encoding import smart_str
+from django.utils.encoding import smart_text
+from django.utils.py3 import b
 
 class CommandError(Exception):
     """
@@ -210,7 +211,7 @@ class BaseCommand(object):
             except ImportError, e:
                 # If settings should be available, but aren't,
                 # raise the error and quit.
-                sys.stderr.write(smart_str(self.style.ERROR('Error: %s\n' % e)))
+                sys.stderr.write(smart_text(self.style.ERROR('Error: %s\n' % e)))
                 sys.exit(1)
         try:
             self.stdout = options.get('stdout', sys.stdout)
@@ -219,6 +220,9 @@ class BaseCommand(object):
                 self.validate()
             output = self.handle(*args, **options)
             if output:
+                if sys.version_info >= (3,0) and isinstance(output, bytes):
+                    # Decode to Unicode so that print can render it correctly
+                    output = output.decode('utf-8')
                 if self.output_transaction:
                     # This needs to be imported here, because it relies on
                     # settings.
@@ -230,7 +234,7 @@ class BaseCommand(object):
                 if self.output_transaction:
                     self.stdout.write('\n' + self.style.SQL_KEYWORD("COMMIT;") + '\n')
         except CommandError, e:
-            self.stderr.write(smart_str(self.style.ERROR('Error: %s\n' % e)))
+            self.stderr.write(smart_text(self.style.ERROR('Error: %s\n' % e)))
             sys.exit(1)
 
     def validate(self, app=None, display_num_errors=False):
@@ -286,7 +290,7 @@ class AppCommand(BaseCommand):
             app_output = self.handle_app(app, **options)
             if app_output:
                 output.append(app_output)
-        return '\n'.join(output)
+        return b('\n').join(output)
 
     def handle_app(self, app, **options):
         """
@@ -404,9 +408,10 @@ def copy_helper(style, app_or_project, name, directory, other_name=''):
                 continue
             path_old = os.path.join(d, f)
             path_new = os.path.join(top_dir, relative_dir, f.replace('%s_name' % app_or_project, name))
-            fp_old = open(path_old, 'r')
-            fp_new = open(path_new, 'w')
-            fp_new.write(fp_old.read().replace('{{ %s_name }}' % app_or_project, name).replace('{{ %s_name }}' % other, other_name))
+            fp_old = open(path_old, 'rb')
+            fp_new = open(path_new, 'wb')
+            # Templates are supposed to be UTF-8
+            fp_new.write(fp_old.read().decode("utf-8").replace('{{ %s_name }}' % app_or_project, name).replace('{{ %s_name }}' % other, other_name).encode("utf-8"))
             fp_old.close()
             fp_new.close()
             try:

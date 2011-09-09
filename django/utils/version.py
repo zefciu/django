@@ -1,5 +1,6 @@
 import django
 import re
+from django.utils.py3 import u
 
 def get_svn_revision(path=None):
     """
@@ -37,5 +38,5 @@ def get_svn_revision(path=None):
             rev = dom.getElementsByTagName('entry')[0].getAttribute('revision')
 
     if rev:
-        return u'SVN-%s' % rev
-    return u'SVN-unknown'
+        return u('SVN-%s' % rev)
+    return u('SVN-unknown')

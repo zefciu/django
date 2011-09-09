@@ -1,4 +1,5 @@
 import datetime
+import sys
 import decimal
 import hashlib
 from time import time
@@ -61,10 +62,25 @@ class CursorDebugWrapper(CursorWrapper):
 
 
 ###############################################
+# Converters from a byte objects to strings #
+###############################################
+
+if sys.version_info >= (3,):
+    def py3_string_conversion(s):
+        # Convert byte s to str
+        if isinstance(s, bytes):
+                s = str(s, encoding='utf8')
+        return s
+else:
+    def py3_string_conversion(s):
+        return s
+
+###############################################
 # Converters from database (string) to Python #
 ###############################################
 
 def typecast_date(s):
+    s = py3_string_conversion(s)
     return s and datetime.date(*map(int, s.split('-'))) or None # returns None if s is null
 
 def typecast_time(s): # does NOT store time zone information
@@ -80,7 +96,14 @@ def typecast_timestamp(s): # does NOT store time zone information
     # "2005-07-29 15:48:00.590358-05"
     # "2005-07-29 09:56:00-05"
     if not s: return None
+    # XXX should the database pass in Unicode here already?
+    #s = s.decode("ascii")
+    
+    # Convert s to str anyway, granted that s is not yet a str
+    s = py3_string_conversion(s)
+
     if not ' ' in s: return typecast_date(s)
+    
     d, t = s.split()
     # Extract timezone information, if it exists. Currently we just throw
     # it away, but in the future we may make use of it.
@@ -108,6 +131,7 @@ def typecast_boolean(s):
     return str(s)[0].lower() == 't'
 
 def typecast_decimal(s):
+    s = py3_string_conversion(s)
     if s is None or s == '':
         return None
     return decimal.Decimal(s)

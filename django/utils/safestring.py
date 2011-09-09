@@ -5,11 +5,12 @@ that the producer of the string has already turned characters that should not
 be interpreted by the HTML engine (e.g. '<') into the appropriate entities.
 """
 from django.utils.functional import curry, Promise
+from django.utils.py3 import bytes, b
 
 class EscapeData(object):
     pass
 
-class EscapeString(str, EscapeData):
+class EscapeString(bytes, EscapeData):
     """
     A string that should be HTML-escaped when output.
     """
@@ -24,7 +25,7 @@ class EscapeUnicode(unicode, EscapeData):
 class SafeData(object):
     pass
 
-class SafeString(str, SafeData):
+class SafeString(bytes, SafeData):
     """
     A string subclass that has been specifically marked as "safe" (requires no
     further escaping) for HTML output purposes.
@@ -49,12 +50,12 @@ class SafeString(str, SafeData):
         """
         method = kwargs.pop('method')
         data = method(self, *args, **kwargs)
-        if isinstance(data, str):
+        if isinstance(data, bytes):
             return SafeString(data)
         else:
             return SafeUnicode(data)
 
-    decode = curry(_proxy_method, method = str.decode)
+    decode = curry(_proxy_method, method = bytes.decode)
 
 class SafeUnicode(unicode, SafeData):
     """
@@ -79,7 +80,7 @@ class SafeUnicode(unicode, SafeData):
         """
         method = kwargs.pop('method')
         data = method(self, *args, **kwargs)
-        if isinstance(data, str):
+        if isinstance(data, bytes):
             return SafeString(data)
         else:
             return SafeUnicode(data)
@@ -95,11 +96,11 @@ def mark_safe(s):
     """
     if isinstance(s, SafeData):
         return s
-    if isinstance(s, str) or (isinstance(s, Promise) and s._delegate_str):
+    if isinstance(s, bytes) or (isinstance(s, Promise) and s._delegate_str):
         return SafeString(s)
     if isinstance(s, (unicode, Promise)):
         return SafeUnicode(s)
-    return SafeString(str(s))
+    return SafeString(b(str(s)))
 
 def mark_for_escaping(s):
     """
@@ -111,7 +112,7 @@ def mark_for_escaping(s):
     """
     if isinstance(s, (SafeData, EscapeData)):
         return s
-    if isinstance(s, str) or (isinstance(s, Promise) and s._delegate_str):
+    if isinstance(s, bytes) or (isinstance(s, Promise) and s._delegate_str):
         return EscapeString(s)
     if isinstance(s, (unicode, Promise)):
         return EscapeUnicode(s)

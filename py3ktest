@@ -1,0 +1,9 @@
+#!/bin/sh
+# Running the tests out of the build directory is not possible:
+# they require access to .mo and .html files, which are only
+# available after installation, or in the source directory.
+# To prevent cluttering the global state, this installs everything
+# into a 3k directory, and then runs the tests out of it.
+python3 setup.py install --install-base 3k --install-lib '$base' --install-headers '$base' --install-scripts '$base' --install-data '$base'
+export PYTHONPATH=`pwd`/3k
+python3 ./build/tests/runtests.py --settings test_sqlite "$@"

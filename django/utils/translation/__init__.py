@@ -7,6 +7,7 @@ from os import path
 from django.utils.encoding import force_unicode
 from django.utils.functional import lazy
 from django.utils.importlib import import_module
+from django.utils.py3 import bytes
 
 
 __all__ = [
@@ -95,8 +96,8 @@ def pgettext(context, message):
 def npgettext(context, singular, plural, number):
     return _trans.npgettext(context, singular, plural, number)
 
-ngettext_lazy = lazy(ngettext, str)
-gettext_lazy = lazy(gettext, str)
+ngettext_lazy = lazy(ngettext, bytes)
+gettext_lazy = lazy(gettext, bytes)
 ungettext_lazy = lazy(ungettext, unicode)
 ugettext_lazy = lazy(ugettext, unicode)
 pgettext_lazy = lazy(pgettext, unicode)

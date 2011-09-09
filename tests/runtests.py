@@ -19,7 +19,7 @@ MODEL_TEST_DIR = os.path.join(RUNTESTS_DIR, MODEL_TESTS_DIR_NAME)
 REGRESSION_TEST_DIR = os.path.join(RUNTESTS_DIR, REGRESSION_TESTS_DIR_NAME)
 TEMP_DIR = tempfile.mkdtemp(prefix='django_')
 
-REGRESSION_SUBDIRS_TO_SKIP = ['locale']
+REGRESSION_SUBDIRS_TO_SKIP = ['locale', '__pycache__']
 
 ALWAYS_INSTALLED_APPS = [
     'django.contrib.contenttypes',

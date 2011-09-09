@@ -2,7 +2,12 @@ import re
 import unicodedata
 import warnings
 from gzip import GzipFile
-from htmlentitydefs import name2codepoint
+try:
+    from htmlentitydefs import name2codepoint
+except ImportError:
+    # XXX fixer replaces this with relative import,
+    # due to presence of html module
+    name2codepoint = __import__('html.entities').entities.name2codepoint
 
 try:
     from cStringIO import StringIO
@@ -12,6 +17,7 @@ except ImportError:
 from django.utils.encoding import force_unicode
 from django.utils.functional import allow_lazy, SimpleLazyObject
 from django.utils.translation import ugettext_lazy, ugettext as _, pgettext
+from django.utils.py3 import bytes
 
 # Capitalizes the first letter of a string.
 capfirst = lambda x: x and force_unicode(x)[0].upper() + force_unicode(x)[1:]
@@ -291,7 +297,7 @@ def javascript_quote(s, quote_double_quotes=False):
     def fix(match):
         return r"\u%04x" % ord(match.group(1))
 
-    if type(s) == str:
+    if type(s) == bytes:
         s = s.decode('utf-8')
     elif type(s) != unicode:
         raise TypeError(s)

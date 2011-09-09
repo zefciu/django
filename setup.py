@@ -1,8 +1,38 @@
-from distutils.core import setup
+from distutils.core import setup, Command
+from distutils import dir_util, file_util
+try:
+    from distutils.util import Mixin2to3
+except ImportError:
+    class Mixin2to3:
+        pass
 from distutils.command.install_data import install_data
 from distutils.command.install import INSTALL_SCHEMES
+from distutils.command import build
 import os
 import sys
+
+if sys.version_info < (3,):
+    u = unicode
+else:
+    u = str
+
+try:
+    from distutils.command.build_py import build_py_2to3 as build_py
+    from lib2to3 import fixes
+    from lib2to3 import refactor
+    # Drop fixers in 3.0 that do more harm than good
+    from lib2to3.fixes import fix_imports, fix_dict
+    del fix_imports.MAPPING['commands']
+    fix_imports.FixImports.PATTERN="|".join(fix_imports.build_pattern())
+    class FixDict(fix_dict.FixDict):
+        def transform(self, node, results):
+            # .values() is used in Django's ORM; the fixer assumes it's the dict method
+            if results["method"][0].value == 'values':
+                return
+            return super().transform(node, results)
+    fix_dict.FixDict = FixDict
+except ImportError:
+    from distutils.command.build_py import build_py
 
 class osx_install_data(install_data):
     # On MacOS, the platform-specific lib dir is /System/Library/Framework/Python/.../
@@ -17,10 +47,61 @@ class osx_install_data(install_data):
         self.set_undefined_options('install', ('install_lib', 'install_dir'))
         install_data.finalize_options(self)
 
+class build_tests(Command, Mixin2to3):
+    # Create mirror copy of tests, convert all .py files using 2to3
+    def initialize_options(self):
+        pass
+    def finalize_options(self):
+        pass
+    
+    def doctest_2to3(self, filenames):
+        from distutils import log
+        if filenames:
+            log.info("Converting doctests")
+        # get all the fixer names
+        requested = set(refactor.get_fixers_from_package("lib2to3.fixes"))
+        rt_opts = {'print_function': None}
+        explicit = set([])
+        # Create RefactoringTool subclass, to avoid breaking on errors
+        class RefactoringTool(refactor.RefactoringTool):
+            def log_error(self, msg, *args, **kw):
+                log.error(msg, *args)            
+        rt = RefactoringTool(requested, rt_opts, sorted(explicit))
+        # XXX 3.1 bug: refactor_doctest looks at rt.log
+        rt.log = rt.logger
+        rt.refactor(filenames, True, True) # convert with -d flag
+    
+    def run(self):
+        build_base = self.distribution.get_command_obj('build').build_base
+        modified = []
+        for srcdir, dirnames, filenames in os.walk('tests'):
+            destdir = os.path.join(build_base, srcdir)
+            dir_util.mkpath(destdir)
+            for fn in filenames:
+                if fn.startswith("."):
+                    continue # skip .svn folders and such
+                dstfile, copied = file_util.copy_file(os.path.join(srcdir, fn),
+                                                      os.path.join(destdir, fn),
+                                                      update=1)
+                if fn.endswith('.py') and copied:
+                    modified.append(dstfile)
+        self.doctest_2to3(modified)
+        self.run_2to3(modified)
+
+class build_py3(build.build):
+    # New version of build command for Python 3.
+    def build_tests(self):
+        return sys.version_info >= (3,0)
+    sub_commands = build.build.sub_commands + [('build_tests', build_tests)]
+
 if sys.platform == "darwin": 
     cmdclasses = {'install_data': osx_install_data} 
 else: 
     cmdclasses = {'install_data': install_data} 
+
+cmdclasses['build_py'] = build_py
+cmdclasses['build_tests'] = build_tests
+cmdclasses['build'] = build_py3
 
 def fullsplit(path, result=None):
     """
@@ -41,6 +122,16 @@ def fullsplit(path, result=None):
 # http://groups.google.com/group/comp.lang.python/browse_thread/thread/35ec7b2fed36eaec/2105ee4d9e8042cb
 for scheme in INSTALL_SCHEMES.values():
     scheme['data'] = scheme['purelib']
+
+# For 2.7 and 3.2, also patch the sysconfig module
+try:
+    import sysconfig
+except ImportError:
+    pass
+else:
+    for name in sysconfig.get_scheme_names():
+        scheme = sysconfig.get_paths(name, expand=False)
+        scheme['data'] = scheme['purelib']
 
 # Compile the list of packages available, because distutils doesn't have
 # an easy way to do this.
@@ -67,7 +158,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'bdist_wininst':
 
 # Dynamically calculate the version based on django.VERSION.
 version = __import__('django').get_version()
-if u'SVN' in version:
+if u('SVN') in version:
     version = ' '.join(version.split(' ')[:-1])
 
 setup(

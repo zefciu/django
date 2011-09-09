@@ -251,6 +251,7 @@ def _exception_traceback(exc_info):
 class _SpoofOut(StringIO):
     def getvalue(self):
         result = StringIO.getvalue(self)
+
         # If anything at all was written, make sure there's a trailing
         # newline.  There's no way for the expected output to indicate
         # that a trailing newline is missing.
@@ -498,11 +499,19 @@ class DocTest:
 
 
     # This lets us sort tests by name:
+    def _cmpkey(self):
+        return (self.name, self.filename, self.lineno, id(self))
     def __cmp__(self, other):
         if not isinstance(other, DocTest):
             return -1
-        return cmp((self.name, self.filename, self.lineno, id(self)),
-                   (other.name, other.filename, other.lineno, id(other)))
+        return cmp(self._cmpkey(), other._cmpkey())
+
+    def __lt__(self, other): return self._cmpkey() < other._cmpkey()
+    def __le__(self, other): return self._cmpkey() <= other._cmpkey()
+    def __gt__(self, other): return self._cmpkey() > other._cmpkey()
+    def __ge__(self, other): return self._cmpkey() >= other._cmpkey()
+    def __eq__(self, other): return self._cmpkey() == other._cmpkey()
+    def __ne__(self, other): return self._cmpkey() != other._cmpkey()
 
 ######################################################################
 ## 3. DocTestParser
@@ -1024,6 +1033,7 @@ class DocTestFinder:
 ## 5. DocTest Runner
 ######################################################################
 
+            
 class DocTestRunner:
     """
     A class used to run DocTest test cases, and accumulate statistics.
@@ -1225,6 +1235,57 @@ class DocTestRunner:
             # the source code during interactive debugging (see
             # __patched_linecache_getlines).
             filename = '<doctest %s[%d]>' % (test.name, examplenum)
+            
+            # Doctest and Py3 issue:
+            # If the current example that we wish to run is going to fail
+            # because it expects a leading u"", then use an alternate displayhook
+            original_displayhook = sys.displayhook
+        
+            if sys.version_info >= (3,):
+                 # only set alternate displayhook if Python 3.x or after
+                lines = []
+                def py3_displayhook(value):
+                    if value is None:
+                        # None should not be considered at all
+                        return original_displayhook(value)
+                    
+                    # Collect the repr output in one variable
+                    s = repr(value)
+                    # Strip b"" and u"" prefixes from the repr and expected output
+                    # TODO: better way of stripping the prefixes?
+                    expected = example.want
+                    expected = expected.strip() # be wary of newlines
+                    s = s.replace("u", "")
+                    s = s.replace("b", "")
+                    expected = expected.replace("u", "")
+                    expected = expected.replace("b", "")
+                    # single quote vs. double quote should not matter
+                    # default all quote marks to double quote
+                    s = s.replace("'", '"')
+                    expected = expected.replace("'", '"')
+                    
+                    # In case of multi-line expected result
+                    lines.append(s)
+                    
+                    # let them match
+                    if s == expected: # be wary of false positives here
+                        # they should be the same, print expected value
+                        print >> sys.stdout, example.want.strip()
+                        
+                    # multi-line expected output, doctest uses loop 
+                    elif len(expected.split("\n")) == len(lines):
+                        if "\n".join(lines) == expected:
+                            print >> sys.stdout, example.want.strip()
+                        else:
+                            print >> sys.stdout, repr(value)
+                    elif len(expected.split("\n")) != len(lines):
+                        # we are not done looping yet, do not print anything!
+                        pass
+                          
+                    else:
+                        print >> sys.stdout, repr(value)
+
+                sys.displayhook = py3_displayhook
 
             # Run the example in the given context (globs), and record
             # any exception that gets raised.  (But don't intercept
@@ -1240,9 +1301,14 @@ class DocTestRunner:
             except:
                 exception = sys.exc_info()
                 self.debugger.set_continue() # ==== Example Finished ====
+            finally:
+                # restore the original displayhook
+                sys.displayhook = original_displayhook
 
             got = self._fakeout.getvalue()  # the actual output
             self._fakeout.truncate(0)
+            # Python 3.1 requires seek after truncate
+            self._fakeout.seek(0)
             outcome = FAILURE   # guilty until proved innocent or insane
 
             # If the example executed without raising any exceptions,
@@ -1253,10 +1319,21 @@ class DocTestRunner:
 
             # The example raised an exception:  check if it was expected.
             else:
-                exc_info = sys.exc_info()
-                exc_msg = traceback.format_exception_only(*exc_info[:2])[-1]
+                exc_msg = traceback.format_exception_only(*exception[:2])[-1]
+                if sys.version_info >= (3,):
+                    # module name will be in group(1) and the expected
+                    # exception message will be in group(2)
+                    m = re.match(r'(.*)\.(\w+:.+\s)', exc_msg)
+                    # make sure there's a match
+                    if m != None:
+                        f_name = m.group(1)
+                        # check to see if m.group(1) contains the module name
+                        if f_name == exception[0].__module__:
+                            # strip the module name from exc_msg
+                            exc_msg = m.group(2) 
+
                 if not quiet:
-                    got += _exception_traceback(exc_info)
+                    got += _exception_traceback(exception)
 
                 # If `example.exc_msg` is None, then we weren't expecting
                 # an exception.
@@ -1286,7 +1363,7 @@ class DocTestRunner:
             elif outcome is BOOM:
                 if not quiet:
                     self.report_unexpected_exception(out, test, example,
-                                                     exc_info)
+                                                     exception)
                 failures += 1
             else:
                 assert False, ("unknown outcome", outcome)

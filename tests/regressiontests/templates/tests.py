@@ -31,7 +31,12 @@ from callables import *
 from context import ContextTests
 from custom import CustomTagTests, CustomFilterTests
 from parser import ParserTests
-from unicode import UnicodeTests
+if sys.version_info <= (3,0):
+    from unicode import UnicodeTests
+else:
+    # 2to3 converts above import to 'from str import unicode_tests'
+    unicode_tests = __import__(__name__.rsplit('.',1)[0]+'.unicode',fromlist=['UnicodeTests']).UnicodeTests
+from nodelist import NodelistTest
 from nodelist import NodelistTest, ErrorIndexTest
 from smartif import *
 from response import *
@@ -39,7 +44,7 @@ from response import *
 try:
     from loaders import *
 except ImportError, e:
-    if "pkg_resources" in e.message:
+    if "pkg_resources" in e.args[0]:
         pass # If setuptools isn't installed, that's fine. Just move on.
     else:
         raise

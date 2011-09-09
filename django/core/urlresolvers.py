@@ -7,13 +7,13 @@ a string) and returns a tuple in this format:
     (view_function, function_args, function_kwargs)
 """
 
-import re
+import re, sys
 from threading import local
 
 from django.http import Http404
 from django.core.exceptions import ImproperlyConfigured, ViewDoesNotExist
 from django.utils.datastructures import MultiValueDict
-from django.utils.encoding import iri_to_uri, force_unicode, smart_str
+from django.utils.encoding import iri_to_uri, force_unicode, smart_text, smart_str
 from django.utils.functional import memoize, lazy
 from django.utils.importlib import import_module
 from django.utils.module_loading import module_has_submodule
@@ -86,6 +86,8 @@ def get_callable(lookup_view, can_fail=False):
     during the import fail and the string is returned.
     """
     if not callable(lookup_view):
+        # Bail early for non-ASCII strings (they can't be functions).
+        lookup_view.encode('ascii')
         mod_name, func_name = get_mod_func(lookup_view)
         try:
             if func_name != '':
@@ -181,8 +183,12 @@ class RegexURLPattern(LocaleRegexProvider):
         self.default_args = default_args or {}
         self.name = name
 
-    def __repr__(self):
-        return smart_str(u'<%s %s %s>' % (self.__class__.__name__, self.name, self.regex.pattern))
+    if sys.version_info < (3,):
+        def __repr__(self):
+            return smart_str(u'<%s %s %s>' % (self.__class__.__name__, self.name, self.regex.pattern))
+    else:
+        def __repr__(self):
+            return u'<%s %s %s>' % (self.__class__.__name__, self.name, self.regex.pattern)
 
     def add_prefix(self, prefix):
         """
@@ -306,10 +312,10 @@ class RegexURLResolver(LocaleRegexProvider):
                         tried.append([pattern])
                 else:
                     if sub_match:
-                        sub_match_dict = dict([(smart_str(k), v) for k, v in match.groupdict().items()])
+                        sub_match_dict = dict([(smart_text(k), v) for k, v in match.groupdict().items()])
                         sub_match_dict.update(self.default_kwargs)
                         for k, v in sub_match.kwargs.iteritems():
-                            sub_match_dict[smart_str(k)] = v
+                            sub_match_dict[smart_text(k)] = v
                         return ResolverMatch(sub_match.func, sub_match.args, sub_match_dict, sub_match.url_name, self.app_name or sub_match.app_name, [self.namespace] + sub_match.namespaces)
                     tried.append([pattern])
             raise Resolver404({'tried': tried, 'path': new_path})

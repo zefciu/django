@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from __future__ import with_statement
-import gettext
+import gettext, sys
 from os import path
 
 from django.conf import settings
@@ -26,7 +26,10 @@ class I18NTests(TestCase):
         for lang_code in ['es', 'fr', 'ru']:
             activate(lang_code)
             catalog = gettext.translation('djangojs', locale_dir, [lang_code])
-            trans_txt = catalog.ugettext('this is to be translated')
+            if sys.version_info >= (3,): 
+                trans_txt = catalog.gettext('this is to be translated')
+            else:
+                trans_txt = catalog.ugettext('this is to be translated')
             response = self.client.get('/views/jsi18n/')
             # in response content must to be a line like that:
             # catalog['this is to be translated'] = 'same_that_trans_txt'

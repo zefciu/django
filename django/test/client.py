@@ -6,10 +6,13 @@ import mimetypes
 import warnings
 from copy import copy
 from urlparse import urlparse, urlsplit
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from StringIO import StringIO
+if sys.version_info >= (3,0):
+    from io import BytesIO as StringIO
+else:
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
 
 from django.conf import settings
 from django.contrib.auth import authenticate, login
@@ -24,14 +27,15 @@ from django.utils.encoding import smart_str
 from django.utils.http import urlencode
 from django.utils.importlib import import_module
 from django.utils.itercompat import is_iterable
+from django.utils.py3 import b
 from django.db import close_connection
 from django.test.utils import ContextList
 
 __all__ = ('Client', 'RequestFactory', 'encode_file', 'encode_multipart')
 
 
-BOUNDARY = 'BoUnDaRyStRiNg'
-MULTIPART_CONTENT = 'multipart/form-data; boundary=%s' % BOUNDARY
+BOUNDARY = b('BoUnDaRyStRiNg')
+MULTIPART_CONTENT = 'multipart/form-data; boundary=%s' % BOUNDARY.decode('ascii')
 CONTENT_TYPE_RE = re.compile('.*; charset=([\w\d-]+);?')
 
 class FakePayload(object):
@@ -125,24 +129,24 @@ def encode_multipart(boundary, data):
                     lines.extend(encode_file(boundary, key, item))
                 else:
                     lines.extend([
-                        '--' + boundary,
-                        'Content-Disposition: form-data; name="%s"' % to_str(key),
-                        '',
+                        b('--') + boundary,
+                        b('Content-Disposition: form-data; name="') + to_str(key) + b('"'),
+                        b(''),
                         to_str(item)
                     ])
         else:
             lines.extend([
-                '--' + boundary,
-                'Content-Disposition: form-data; name="%s"' % to_str(key),
-                '',
+                b('--') + boundary,
+                b('Content-Disposition: form-data; name="') + to_str(key) + b('"'),
+                b(''),
                 to_str(value)
             ])
 
     lines.extend([
-        '--' + boundary + '--',
-        '',
+        b('--') + boundary + b('--'),
+        b(''),
     ])
-    return '\r\n'.join(lines)
+    return b('\r\n').join(lines)
 
 def encode_file(boundary, key, file):
     to_str = lambda s: smart_str(s, settings.DEFAULT_CHARSET)
@@ -150,11 +154,11 @@ def encode_file(boundary, key, file):
     if content_type is None:
         content_type = 'application/octet-stream'
     return [
-        '--' + boundary,
-        'Content-Disposition: form-data; name="%s"; filename="%s"' \
+        b('--') + boundary,
+        b('Content-Disposition: form-data; name="%s"; filename="%s"') \
             % (to_str(key), to_str(os.path.basename(file.name))),
-        'Content-Type: %s' % content_type,
-        '',
+        b('Content-Type: %s') % content_type,
+        b(''),
         file.read()
     ]
 
@@ -235,7 +239,7 @@ class RequestFactory(object):
             'PATH_INFO':       self._get_path(parsed),
             'QUERY_STRING':    urlencode(data, doseq=True) or parsed[4],
             'REQUEST_METHOD': 'GET',
-            'wsgi.input':      FakePayload('')
+            'wsgi.input':      FakePayload(b(''))
         }
         r.update(extra)
         return self.request(**r)

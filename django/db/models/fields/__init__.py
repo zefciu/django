@@ -1,3 +1,4 @@
+import sys
 import copy
 import datetime
 import decimal
@@ -15,7 +16,8 @@ from django.utils.datastructures import DictWrapper
 from django.utils.functional import curry
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
-from django.utils.encoding import smart_unicode, force_unicode, smart_str
+from django.utils.encoding import smart_unicode, force_unicode, smart_text
+from django.utils.py3 import b
 from django.utils import datetime_safe
 from django.utils.ipv6 import clean_ipv6_address
 
@@ -121,6 +123,10 @@ class Field(object):
     def __cmp__(self, other):
         # This is needed because bisect does not take a comparison function.
         return cmp(self.creation_counter, other.creation_counter)
+
+    # XXX Shouldn't a fixer insert the proper methods?
+    def __lt__(self, other):
+        return self.creation_counter < other.creation_counter
 
     def __deepcopy__(self, memodict):
         # We don't have to deepcopy very much here, since most things are not
@@ -695,7 +701,7 @@ class DateTimeField(DateField):
             return datetime.datetime(value.year, value.month, value.day)
 
         # Attempt to parse a datetime:
-        value = smart_str(value)
+        value = smart_text(value)
         # split usecs, because they are not recognized by strptime.
         if '.' in value:
             try:
@@ -1123,7 +1129,7 @@ class TimeField(Field):
             return value.time()
 
         # Attempt to parse a datetime:
-        value = smart_str(value)
+        value = smart_text(value)
         # split usecs, because they are not recognized by strptime.
         if '.' in value:
             try:

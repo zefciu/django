@@ -1,9 +1,12 @@
 import sys
 from threading import Lock
 try:
-    from cStringIO import StringIO
+    from io import BytesIO as StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
 
 from django import http
 from django.core import signals

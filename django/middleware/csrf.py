@@ -5,6 +5,7 @@ This module provides a middleware that implements protection
 against request forgeries from other sites.
 """
 
+import sys
 import hashlib
 import re
 import random
@@ -14,6 +15,7 @@ from django.core.urlresolvers import get_callable
 from django.utils.cache import patch_vary_headers
 from django.utils.http import same_origin
 from django.utils.log import getLogger
+from django.utils.py3 import b
 from django.utils.crypto import constant_time_compare
 
 logger = getLogger('django.request')
@@ -39,7 +41,7 @@ def _get_failure_view():
 
 
 def _get_new_csrf_key():
-    return hashlib.md5("%s%s" % (randrange(0, _MAX_CSRF_KEY), settings.SECRET_KEY)).hexdigest()
+    return hashlib.md5((u"%s%s" % (randrange(0, _MAX_CSRF_KEY), settings.SECRET_KEY)).encode('ascii')).hexdigest()
 
 
 def get_token(request):
@@ -59,12 +61,17 @@ def get_token(request):
 def _sanitize_token(token):
     # Allow only alphanum, and ensure we return a 'str' for the sake of the post
     # processing middleware.
-    token = re.sub('[^a-zA-Z0-9]', '', str(token.decode('ascii', 'ignore')))
+    if isinstance(token, unicode):
+        token = token.encode('ascii', 'ignore')
+    token = re.sub(b('[^a-zA-Z0-9]'), b(''), token)
     if token == "":
         # In case the cookie has been truncated to nothing at some point.
         return _get_new_csrf_key()
     else:
-        return token
+        if sys.version_info < (3,):
+            return token
+        else:
+            return token.decode('ascii')
 
 
 class CsrfViewMiddleware(object):

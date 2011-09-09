@@ -5,6 +5,7 @@ Django's standard crypto functions and utilities.
 import hashlib
 import hmac
 from django.conf import settings
+from django.utils.py3 import b
 
 def salted_hmac(key_salt, value, secret=None):
     """
@@ -19,7 +20,7 @@ def salted_hmac(key_salt, value, secret=None):
     # We need to generate a derived key from our base key.  We can do this by
     # passing the key_salt and our base key through a pseudo-random function and
     # SHA1 works nicely.
-    key = hashlib.sha1(key_salt + secret).digest()
+    key = hashlib.sha1(b(key_salt + secret)).digest()
 
     # If len(key_salt + secret) > sha_constructor().block_size, the above
     # line is redundant and could be replaced by key = key_salt + secret, since

@@ -4,7 +4,6 @@ from django.http import SimpleCookie
 from django.utils import simplejson as json
 from django.utils.crypto import salted_hmac, constant_time_compare
 
-
 class MessageEncoder(json.JSONEncoder):
     """
     Compactly serializes instances of the ``Message`` class as JSON.

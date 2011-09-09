@@ -271,7 +271,8 @@ class Deserializer(base.Deserializer):
                 "<%s> node is missing the required '%s' attribute" \
                     % (node.nodeName, attr))
         try:
-            Model = models.get_model(*model_identifier.split("."))
+            # XXX why strip b''?
+            Model = models.get_model(*model_identifier.replace("b'", "").replace("'", "").split("."))
         except TypeError:
             Model = None
         if Model is None:

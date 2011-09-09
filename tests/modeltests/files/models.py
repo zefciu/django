@@ -10,6 +10,7 @@ import tempfile
 
 from django.db import models
 from django.core.files.storage import FileSystemStorage
+from django.utils.py3 import b
 
 
 temp_storage_location = tempfile.mkdtemp()

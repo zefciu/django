@@ -251,10 +251,10 @@ class JSONEncoder(object):
 
 def _make_iterencode(markers, _default, _encoder, _indent, _floatstr, _key_separator, _item_separator, _sort_keys, _skipkeys, _one_shot,
         ## HACK: hand-optimized bytecode; turn globals into locals
-        False=False,
-        True=True,
+        _False=False,
+        _True=True,
         ValueError=ValueError,
-        basestring=basestring,
+        _basestring=basestring, # XXX bug in fixer: replaces LHS with str
         dict=dict,
         float=float,
         id=id,
@@ -284,19 +284,19 @@ def _make_iterencode(markers, _default, _encoder, _indent, _floatstr, _key_separ
         else:
             newline_indent = None
             separator = _item_separator
-        first = True
+        first = _True
         for value in lst:
             if first:
-                first = False
+                first = _False
             else:
                 buf = separator
-            if isinstance(value, basestring):
+            if isinstance(value, _basestring):
                 yield buf + _encoder(value)
             elif value is None:
                 yield buf + 'null'
-            elif value is True:
+            elif value is _True:
                 yield buf + 'true'
-            elif value is False:
+            elif value is _False:
                 yield buf + 'false'
             elif isinstance(value, (int, long)):
                 yield buf + str(value)
@@ -337,14 +337,14 @@ def _make_iterencode(markers, _default, _encoder, _indent, _floatstr, _key_separ
         else:
             newline_indent = None
             item_separator = _item_separator
-        first = True
+        first = _True
         if _sort_keys:
             items = dct.items()
             items.sort(key=lambda kv: kv[0])
         else:
             items = dct.iteritems()
         for key, value in items:
-            if isinstance(key, basestring):
+            if isinstance(key, _basestring):
                 pass
             # JavaScript is weakly typed for these, so it makes sense to
             # also allow them.  Many encoders seem to do something like this.
@@ -352,9 +352,9 @@ def _make_iterencode(markers, _default, _encoder, _indent, _floatstr, _key_separ
                 key = _floatstr(key)
             elif isinstance(key, (int, long)):
                 key = str(key)
-            elif key is True:
+            elif key is _True:
                 key = 'true'
-            elif key is False:
+            elif key is _False:
                 key = 'false'
             elif key is None:
                 key = 'null'
@@ -363,18 +363,18 @@ def _make_iterencode(markers, _default, _encoder, _indent, _floatstr, _key_separ
             else:
                 raise TypeError("key %r is not a string" % (key,))
             if first:
-                first = False
+                first = _False
             else:
                 yield item_separator
             yield _encoder(key)
             yield _key_separator
-            if isinstance(value, basestring):
+            if isinstance(value, _basestring):
                 yield _encoder(value)
             elif value is None:
                 yield 'null'
-            elif value is True:
+            elif value is _True:
                 yield 'true'
-            elif value is False:
+            elif value is _False:
                 yield 'false'
             elif isinstance(value, (int, long)):
                 yield str(value)
@@ -397,13 +397,13 @@ def _make_iterencode(markers, _default, _encoder, _indent, _floatstr, _key_separ
             del markers[markerid]
 
     def _iterencode(o, _current_indent_level):
-        if isinstance(o, basestring):
+        if isinstance(o, _basestring):
             yield _encoder(o)
         elif o is None:
             yield 'null'
-        elif o is True:
+        elif o is _True:
             yield 'true'
-        elif o is False:
+        elif o is _False:
             yield 'false'
         elif isinstance(o, (int, long)):
             yield str(o)

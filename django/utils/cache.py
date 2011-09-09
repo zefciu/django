@@ -26,6 +26,7 @@ from django.core.cache import get_cache
 from django.utils.encoding import smart_str, iri_to_uri
 from django.utils.http import http_date
 from django.utils.translation import get_language
+from django.utils.py3 import b
 
 cc_delim_re = re.compile(r'\s*,\s*')
 
@@ -52,7 +53,7 @@ def patch_cache_control(response, **kwargs):
         if t[1] is True:
             return t[0]
         else:
-            return t[0] + '=' + smart_str(t[1])
+            return b(t[0]) + b('=') + smart_str(t[1])
 
     if response.has_header('Cache-Control'):
         cc = cc_delim_re.split(response['Cache-Control'])
@@ -74,7 +75,7 @@ def patch_cache_control(response, **kwargs):
 
     for (k, v) in kwargs.items():
         cc[k.replace('_', '-')] = v
-    cc = ', '.join([dictvalue(el) for el in cc.items()])
+    cc = b(', ').join([dictvalue(el) for el in cc.items()])
     response['Cache-Control'] = cc
 
 def get_max_age(response):

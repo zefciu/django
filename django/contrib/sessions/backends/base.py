@@ -3,7 +3,9 @@ import hashlib
 import os
 import random
 import time
+from django.utils.py3 import b
 from datetime import datetime, timedelta
+
 try:
     import cPickle as pickle
 except ImportError:
@@ -85,16 +87,16 @@ class SessionBase(object):
 
     def _hash(self, value):
         key_salt = "django.contrib.sessions" + self.__class__.__name__
-        return salted_hmac(key_salt, value).hexdigest()
+        return b(salted_hmac(key_salt, value).hexdigest())
 
     def encode(self, session_dict):
         "Returns the given session dictionary pickled and encoded as a string."
         pickled = pickle.dumps(session_dict, pickle.HIGHEST_PROTOCOL)
         hash = self._hash(pickled)
-        return base64.encodestring(hash + ":" + pickled)
+        return base64.encodestring(hash + b(":") + pickled)
 
     def decode(self, session_data):
-        encoded_data = base64.decodestring(session_data)
+        encoded_data = base64.decodestring(session_data.encode('ascii'))
         try:
             # could produce ValueError if there is no ':'
             hash, pickled = encoded_data.split(':', 1)
@@ -145,9 +147,10 @@ class SessionBase(object):
             # No getpid() in Jython, for example
             pid = 1
         while 1:
-            session_key = hashlib.md5("%s%s%s%s"
+            # XXX should session_key be a byte string in 3k?
+            session_key = hashlib.md5(b("%s%s%s%s"
                     % (randrange(0, MAX_SESSION_KEY), pid, time.time(),
-                       settings.SECRET_KEY)).hexdigest()
+                       settings.SECRET_KEY))).hexdigest()
             if not self.exists(session_key):
                 break
         return session_key

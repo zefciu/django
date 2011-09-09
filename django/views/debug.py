@@ -14,6 +14,7 @@ from django.template.defaultfilters import force_escape, pprint
 from django.utils.html import escape
 from django.utils.importlib import import_module
 from django.utils.encoding import smart_unicode, smart_str
+from django.utils.py3 import b
 
 HIDDEN_SETTINGS = re.compile('SECRET|PASSWORD|PROFANITIES_LIST|SIGNATURE')
 
@@ -313,7 +314,7 @@ class ExceptionReporter(object):
                 source = source.splitlines()
         if source is None:
             try:
-                f = open(filename)
+                f = open(filename, 'rb')
                 try:
                     source = f.readlines()
                 finally:
@@ -327,7 +328,7 @@ class ExceptionReporter(object):
         for line in source[:2]:
             # File coding may be specified. Match pattern from PEP-263
             # (http://www.python.org/dev/peps/pep-0263/)
-            match = re.search(r'coding[:=]\s*([-\w.]+)', line)
+            match = re.search(b(r'coding[:=]\s*([-\w.]+)'), line)
             if match:
                 encoding = match.group(1)
                 break

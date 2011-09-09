@@ -1,5 +1,6 @@
-import operator
+import sys, operator
 from functools import wraps, update_wrapper
+from django.utils.py3 import bytes, dictvalues
 
 
 # You can't trivially replace this `functools.partial` because this binds to
@@ -78,11 +79,13 @@ def lazy(func, *resultclasses):
                         if hasattr(cls, k):
                             continue
                         setattr(cls, k, meth)
-            cls._delegate_str = str in resultclasses
+            cls._delegate_str = bytes in resultclasses
             cls._delegate_unicode = unicode in resultclasses
             assert not (cls._delegate_str and cls._delegate_unicode), "Cannot call lazy() with both str and unicode return types."
             if cls._delegate_unicode:
                 cls.__unicode__ = cls.__unicode_cast
+                if sys.version_info >= (3,0):
+                    __proxy__.__str__ = __proxy__.__unicode_cast
             elif cls._delegate_str:
                 cls.__str__ = cls.__str_cast
         __prepare_class__ = classmethod(__prepare_class__)
@@ -109,23 +112,40 @@ def lazy(func, *resultclasses):
             return self.__func(*self.__args, **self.__kw)
 
         def __str_cast(self):
-            return str(self.__func(*self.__args, **self.__kw))
+            return bytes(self.__func(*self.__args, **self.__kw))
 
-        def __cmp__(self, rhs):
+        def _cmp_(self, rhs, op, negop):
             if self._delegate_str:
-                s = str(self.__func(*self.__args, **self.__kw))
+                s = bytes(self.__func(*self.__args, **self.__kw))
             elif self._delegate_unicode:
                 s = unicode(self.__func(*self.__args, **self.__kw))
             else:
                 s = self.__func(*self.__args, **self.__kw)
             if isinstance(rhs, Promise):
-                return -cmp(rhs, s)
+                return negop(rhs, s)
             else:
-                return cmp(s, rhs)
+                return op(s, rhs)
+
+        def __cmp__(self, rhs):
+            return self._cmp_(rhs, cmp, lambda a,b:-cmp(a,b))
+
+        if sys.version_info > (3,0):
+            def __lt__(self, rhs):
+                return self._cmp_(rhs, operator.__lt__, operator.__ge__)
+            def __le__(self, rhs):
+                return self._cmp_(rhs, operator.__le__, operator.__gt__)
+            def __eq__(self, rhs):
+                return self._cmp_(rhs, operator.__eq__, operator.__ne__)
+            def __ne(self, rhs):
+                return self._cmp_(rhs, operator.__ne__, operator.__eq__)
+            def __ge__(self, rhs):
+                return self._cmp_(rhs, operator.__ge__, operator.__lt__)
+            def __gt__(self, rhs):
+                return self._cmp_(rhs, operator.__gt__, operator.__le__)
 
         def __mod__(self, rhs):
             if self._delegate_str:
-                return str(self) % rhs
+                return bytes(self) % rhs
             elif self._delegate_unicode:
                 return unicode(self) % rhs
             else:
@@ -157,7 +177,7 @@ def allow_lazy(func, *resultclasses):
     """
     @wraps(func)
     def wrapper(*args, **kwargs):
-        for arg in list(args) + kwargs.values():
+        for arg in list(args) + dictvalues(kwargs):
             if isinstance(arg, Promise):
                 break
         else:

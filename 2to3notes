@@ -1,0 +1,4 @@
+Book.objects.filter(pk=1).values().annotate(mean_age=Avg('authors__age'))
+transformed to
+list(Book.objects.filter(pk=1).values()).annotate(mean_age=Avg('authors__age'))
+-> list object has no annotate

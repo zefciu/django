@@ -54,13 +54,13 @@ class MergeDict(object):
             yield v
 
     def items(self):
-        return list(self.iteritems())
+        return list(getattr(self, "iteritems"))
 
     def keys(self):
-        return list(self.iterkeys())
+        return list(getattr(self, "iterkeys"))
 
     def values(self):
-        return list(self.itervalues())
+        return list(getattr(self, "itervalues"))
 
     def has_key(self, key):
         for dict_ in self.dicts:

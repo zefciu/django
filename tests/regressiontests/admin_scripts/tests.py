@@ -171,6 +171,8 @@ class AdminScriptTestCase(unittest.TestCase):
 
     def assertOutput(self, stream, msg):
         "Utility assertion: assert that the given message exists in the output"
+        if sys.version_info >= (3,): 
+            stream = str(stream, encoding='utf8')
         self.assertTrue(msg in stream, "'%s' does not match actual output text '%s'" % (msg, stream))
 
 ##########################################################################

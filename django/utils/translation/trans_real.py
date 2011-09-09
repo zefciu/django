@@ -274,8 +274,11 @@ def do_translate(message, translation_function):
 def gettext(message):
     return do_translate(message, 'gettext')
 
-def ugettext(message):
-    return do_translate(message, 'ugettext')
+if sys.version_info < (3, 0):
+    def ugettext(message):
+        return do_translate(message, 'ugettext')
+else:
+    ugettext = gettext
 
 def pgettext(context, message):
     result = do_translate(
@@ -318,6 +321,8 @@ def ungettext(singular, plural, number):
     plural, based on the number.
     """
     return do_ntranslate(singular, plural, number, 'ungettext')
+if sys.version_info >= (3,0):
+    ungettext = ngettext
 
 def npgettext(context, singular, plural, number):
     result = do_ntranslate(u"%s%s%s" % (context, CONTEXT_SEPARATOR, singular),

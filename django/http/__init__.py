@@ -1,5 +1,6 @@
 import datetime
 import os
+import sys
 import re
 import time
 from pprint import pformat
@@ -111,6 +112,7 @@ class CompatCookie(SimpleCookie):
 
 from django.utils.datastructures import MultiValueDict, ImmutableList
 from django.utils.encoding import smart_str, iri_to_uri, force_unicode
+from django.utils.py3 import bytes
 from django.utils.http import cookie_date
 from django.http.multipartparser import MultiPartParser
 from django.conf import settings
@@ -386,6 +388,8 @@ class QueryDict(MultiValueDict):
         if not encoding:
             encoding = settings.DEFAULT_CHARSET
         self.encoding = encoding
+        if isinstance(query_string, bytes):
+            query_string = query_string.decode('ascii')
         for key, value in parse_qsl((query_string or ''), True): # keep_blank_values=True
             self.appendlist(force_unicode(key, encoding, errors='replace'),
                             force_unicode(value, encoding, errors='replace'))
@@ -566,7 +570,11 @@ class HttpResponse(object):
         for value in values:
             if isinstance(value, unicode):
                 try:
-                    value = value.encode('us-ascii')
+                    if sys.version_info < (3,0):
+                        value = value.encode('us-ascii')
+                    else:
+                        # In 3k, still use Unicode strings in headers
+                        value.encode('us-ascii')
                 except UnicodeError, e:
                     e.reason += ', HTTP response headers must be in US-ASCII format'
                     raise
@@ -665,7 +673,7 @@ class HttpResponse(object):
         chunk = self._iterator.next()
         if isinstance(chunk, unicode):
             chunk = chunk.encode(self._charset)
-        return str(chunk)
+        return bytes(chunk)
 
     def close(self):
         if hasattr(self._container, 'close'):
@@ -740,7 +748,7 @@ def str_to_unicode(s, encoding):
 
     Returns any non-basestring objects without change.
     """
-    if isinstance(s, str):
+    if isinstance(s, bytes):
         return unicode(s, encoding, 'replace')
     else:
         return s

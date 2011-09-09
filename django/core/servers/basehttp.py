@@ -20,6 +20,7 @@ from wsgiref.util import FileWrapper   # for backwards compatibility
 import django
 from django.core.management.color import color_style
 from django.utils._os import safe_join
+from django.utils.py3 import b, bytes
 from django.views import static
 
 from django.contrib.staticfiles import handlers
@@ -36,9 +37,8 @@ class ServerHandler(simple_server.ServerHandler, object):
 
     def write(self, data):
         """'write()' callable as specified by PEP 333"""
-
-        assert isinstance(data, str), "write() argument must be string"
-
+        assert isinstance(data, bytes), "write() argument must be string"
+        
         if not self.status:
             raise AssertionError("write() before start_response()")
 
@@ -111,17 +111,25 @@ class WSGIRequestHandler(simple_server.WSGIRequestHandler, object):
         env['QUERY_STRING'] = query
         env['REMOTE_ADDR'] = self.client_address[0]
 
-        if self.headers.typeheader is None:
-            env['CONTENT_TYPE'] = self.headers.type
+        if self.headers.get('content-type') is None:
+            # 3.x: self.headers.type is gone. Since it should
+            # be text/plain anyway if no content-type header is
+            # present, accessing .type is redundant
+            env['CONTENT_TYPE'] = 'text/plain'
         else:
-            env['CONTENT_TYPE'] = self.headers.typeheader
+            env['CONTENT_TYPE'] = self.headers.get('content-type')
 
-        length = self.headers.getheader('content-length')
+        length = self.headers.get('content-length')
         if length:
             env['CONTENT_LENGTH'] = length
 
-        for h in self.headers.headers:
-            k,v = h.split(':',1)
+        if sys.version_info < (3,0):
+            headers = [h.split(':', 1) for h in self.headers.headers]
+        else:
+            # 3.x: .headers is gone; iterating over message itself
+            # yields duplicate headers as necessary
+            headers = self.headers.items()
+        for k,v in headers:
             k=k.replace('-','_').upper(); v=v.strip()
             if k in env:
                 continue                    # skip content length, type,etc.

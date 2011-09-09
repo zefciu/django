@@ -24,7 +24,7 @@ class FileUploadTests(TestCase):
     def test_simple_upload(self):
         post_data = {
             'name': 'Ringo',
-            'file_field': open(__file__),
+            'file_field': open(__file__, 'rb'),
         }
         response = self.client.post('/file_uploads/upload/', post_data)
         self.assertEqual(response.status_code, 200)
@@ -294,7 +294,7 @@ class FileUploadTests(TestCase):
 
         post_data = {
             'name': 'Ringo',
-            'file_field': open(__file__),
+            'file_field': open(__file__, 'rb'),
         }
         # Maybe this is a little more complicated that it needs to be; but if
         # the django.test.client.FakePayload.read() implementation changes then
@@ -380,7 +380,7 @@ class DirectoryCreationTests(unittest.TestCase):
     def test_not_a_directory(self):
         """The correct IOError is raised when the upload directory name exists but isn't a directory"""
         # Create a file with the upload directory name
-        fd = open(UPLOAD_TO, 'w')
+        fd = open(UPLOAD_TO, 'wb')
         fd.close()
         try:
             self.obj.testfile.save('foo.txt', SimpleUploadedFile('foo.txt', 'x'))

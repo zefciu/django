@@ -28,7 +28,8 @@ class Serializer(base.Serializer):
 
     def end_object(self, obj):
         self.objects.append({
-            "model"  : smart_unicode(obj._meta),
+            # XXX why replace b''
+            "model"  : smart_unicode(obj._meta).replace("b'", "").replace("'", ""),
             "pk"     : smart_unicode(obj._get_pk_val(), strings_only=True),
             "fields" : self._current
         })

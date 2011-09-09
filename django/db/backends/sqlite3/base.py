@@ -18,6 +18,7 @@ from django.db.backends.sqlite3.creation import DatabaseCreation
 from django.db.backends.sqlite3.introspection import DatabaseIntrospection
 from django.utils.safestring import SafeString
 
+from django.utils.py3 import b
 try:
     try:
         from pysqlite2 import dbapi2 as Database
@@ -31,7 +32,7 @@ except ImportError, exc:
 DatabaseError = Database.DatabaseError
 IntegrityError = Database.IntegrityError
 
-Database.register_converter("bool", lambda s: str(s) == '1')
+Database.register_converter("bool", lambda s: s == b('1'))
 Database.register_converter("time", util.typecast_time)
 Database.register_converter("date", util.typecast_date)
 Database.register_converter("datetime", util.typecast_timestamp)
@@ -270,18 +271,18 @@ class SQLiteCursorWrapper(Database.Cursor):
         try:
             return Database.Cursor.execute(self, query, params)
         except Database.IntegrityError, e:
-            raise utils.IntegrityError, utils.IntegrityError(*tuple(e)), sys.exc_info()[2]
+            raise utils.IntegrityError, utils.IntegrityError(*e.args), sys.exc_info()[2]
         except Database.DatabaseError, e:
-            raise utils.DatabaseError, utils.DatabaseError(*tuple(e)), sys.exc_info()[2]
+            raise utils.DatabaseError, utils.DatabaseError(*e.args), sys.exc_info()[2]
 
     def executemany(self, query, param_list):
         query = self.convert_query(query)
         try:
             return Database.Cursor.executemany(self, query, param_list)
         except Database.IntegrityError, e:
-            raise utils.IntegrityError, utils.IntegrityError(*tuple(e)), sys.exc_info()[2]
+            raise utils.IntegrityError, utils.IntegrityError(*e.args), sys.exc_info()[2]
         except Database.DatabaseError, e:
-            raise utils.DatabaseError, utils.DatabaseError(*tuple(e)), sys.exc_info()[2]
+            raise utils.DatabaseError, utils.DatabaseError(*e.args), sys.exc_info()[2]
 
     def convert_query(self, query):
         return FORMAT_QMARK_REGEX.sub('?', query).replace('%%','%')

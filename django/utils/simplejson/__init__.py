@@ -101,6 +101,7 @@ Using simplejson.tool from the shell to validate and pretty-print::
 # Django modification: try to use the system version first, providing it's
 # either of a later version of has the C speedups in place. Otherwise, fall
 # back to our local copy.
+import sys
 
 __version__ = '2.0.7'
 
@@ -116,7 +117,30 @@ try:
 except ImportError:
     pass
 
-if not use_system_version:
+if sys.version_info >= (3,0) and not use_system_version:
+    # The 3.x json library doesn't support parsing byte strings
+    __all__ = [
+        'dump', 'dumps', 'load', 'loads',
+        'JSONDecoder', 'JSONEncoder',
+    ]
+    import json
+    dump = json.dump
+    dumps = json.dumps
+    JSONEncoder = json.JSONEncoder
+    class JSONDecoder(json.JSONDecoder):
+        def decode(self, s):
+            if isinstance(s, bytes):
+                s = s.decode('utf-8')
+            return super().decode(s)
+    def loads(s, *args, **kw):
+        if isinstance(s, bytes):
+            s = s.decode('utf-8')
+        return json.loads(s, *args, **kw)
+    def load(fp, *args, **kw):
+        return loads(fp.read(), *args, **kw)
+    use_system_version = True
+
+elif not use_system_version:
     try:
         from json import *      # Python 2.6 preferred over local copy.
 
