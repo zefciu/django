@@ -186,18 +186,18 @@ class RequestFactory(object):
         """
         The base environment for a request.
         """
+        # This is a minimal valid WSGI environ dictionary, plus HTTP_COOKIE
+        # for cookie support. Empty strings are omitted.
+        # See http://www.python.org/dev/peps/pep-3333/#environ-variables
         environ = {
             'HTTP_COOKIE':       self.cookies.output(header='', sep='; '),
-            'PATH_INFO':         '/',
-            'QUERY_STRING':      '',
-            'REMOTE_ADDR':       '127.0.0.1',
             'REQUEST_METHOD':    'GET',
-            'SCRIPT_NAME':       '',
             'SERVER_NAME':       'testserver',
             'SERVER_PORT':       '80',
             'SERVER_PROTOCOL':   'HTTP/1.1',
             'wsgi.version':      (1,0),
             'wsgi.url_scheme':   'http',
+            'wsgi.input':        FakePayload(''),
             'wsgi.errors':       self.errors,
             'wsgi.multiprocess': True,
             'wsgi.multithread':  False,
@@ -239,7 +239,6 @@ class RequestFactory(object):
             'PATH_INFO':       self._get_path(parsed),
             'QUERY_STRING':    urlencode(data, doseq=True) or parsed[4],
             'REQUEST_METHOD': 'GET',
-            'wsgi.input':      FakePayload(b(''))
         }
         r.update(extra)
         return self.request(**r)
@@ -271,7 +270,6 @@ class RequestFactory(object):
             'PATH_INFO':       self._get_path(parsed),
             'QUERY_STRING':    urlencode(data, doseq=True) or parsed[4],
             'REQUEST_METHOD': 'HEAD',
-            'wsgi.input':      FakePayload('')
         }
         r.update(extra)
         return self.request(**r)
@@ -284,7 +282,6 @@ class RequestFactory(object):
             'PATH_INFO':       self._get_path(parsed),
             'QUERY_STRING':    urlencode(data, doseq=True) or parsed[4],
             'REQUEST_METHOD': 'OPTIONS',
-            'wsgi.input':      FakePayload('')
         }
         r.update(extra)
         return self.request(**r)
@@ -315,7 +312,6 @@ class RequestFactory(object):
             'PATH_INFO':       self._get_path(parsed),
             'QUERY_STRING':    urlencode(data, doseq=True) or parsed[4],
             'REQUEST_METHOD': 'DELETE',
-            'wsgi.input':      FakePayload('')
         }
         r.update(extra)
         return self.request(**r)

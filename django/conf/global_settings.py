@@ -143,6 +143,9 @@ SEND_BROKEN_LINK_EMAILS = False
 
 # Database connection info.
 DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.dummy',
+    },
 }
 
 # Classes used to implement db routing behaviour
@@ -402,6 +405,8 @@ DEFAULT_INDEX_TABLESPACE = ''
 # Default X-Frame-Options header value
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+USE_X_FORWARDED_HOST = False
+
 ##############
 # MIDDLEWARE #
 ##############
@@ -453,8 +458,8 @@ CACHE_MIDDLEWARE_ALIAS = 'default'
 
 COMMENTS_ALLOW_PROFANITIES = False
 
-# The profanities that will trigger a validation error in the
-# 'hasNoProfanities' validator. All of these should be in lowercase.
+# The profanities that will trigger a validation error in
+# CommentDetailsForm.clean_comment. All of these should be in lowercase.
 PROFANITIES_LIST = ()
 
 ##################
@@ -512,13 +517,13 @@ LOGGING_CONFIG = 'django.utils.log.dictConfig'
 # The default logging configuration. This sends an email to
 # the site admins on every HTTP 500 error. All other log
 # records are sent to the bit bucket.
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'filters': {
         'require_debug_false': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda r: not DEBUG
+            '()': 'django.utils.log.RequireDebugFalse',
         }
     },
     'handlers': {

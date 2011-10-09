@@ -96,6 +96,14 @@ class FileStorageTests(unittest.TestCase):
         shutil.rmtree(self.temp_dir)
         shutil.rmtree(self.temp_dir2)
 
+    def test_emtpy_location(self):
+        """
+        Makes sure an exception is raised if the location is empty
+        """
+        storage = self.storage_class(location='')
+        self.assertEqual(storage.base_location, '')
+        self.assertEqual(storage.location, os.getcwd())
+
     def test_file_access_options(self):
         """
         Standard file access options are available, and work as expected.
@@ -230,26 +238,6 @@ class FileStorageTests(unittest.TestCase):
 
         self.storage.base_url = None
         self.assertRaises(ValueError, self.storage.url, 'test.file')
-
-    def test_file_with_mixin(self):
-        """
-        File storage can get a mixin to extend the functionality of the
-        returned file.
-        """
-        self.assertFalse(self.storage.exists('test.file'))
-
-        class TestFileMixin(object):
-            mixed_in = True
-
-        f = ContentFile('custom contents')
-        f_name = self.storage.save('test.file', f)
-
-        self.assertTrue(isinstance(
-            self.storage.open('test.file', mixin=TestFileMixin),
-            TestFileMixin
-        ))
-
-        self.storage.delete('test.file')
 
     def test_listdir(self):
         """

@@ -26,6 +26,7 @@ from models import Company, TestModel
 
 from commands.tests import *
 from patterns.tests import *
+from contenttypes.tests import *
 from test_warnings import DeprecationWarningTests
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -478,6 +479,11 @@ class FormattingTests(TestCase):
         en_format_mod = import_module('django.conf.locale.en.formats')
         en_gb_format_mod = import_module('django.conf.locale.en_GB.formats')
         self.assertEqual(list(iter_format_modules('en-gb')), [en_gb_format_mod, en_format_mod])
+
+    def test_get_format_modules_lang(self):
+        with self.settings(USE_L10N=True):
+            with translation.override('de', deactivate=True):
+                self.assertEqual('.', get_format('DECIMAL_SEPARATOR', lang='en'))
 
     def test_get_format_modules_stability(self):
         with self.settings(USE_L10N=True,

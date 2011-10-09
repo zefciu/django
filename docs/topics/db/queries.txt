@@ -346,7 +346,7 @@ This is roughly equivalent to::
 
 Note, however, that the first of these will raise ``IndexError`` while the
 second will raise ``DoesNotExist`` if no objects match the given criteria. See
-:meth:`~django.db.models.QuerySet.get` for more details.
+:meth:`~django.db.models.query.QuerySet.get` for more details.
 
 .. _field-lookups-intro:
 
@@ -1035,6 +1035,8 @@ existing elements.
 Each "reverse" operation described in this section has an immediate effect on
 the database. Every addition, creation and deletion is immediately and
 automatically saved to the database.
+
+.. _m2m-reverse-relationships:
 
 Many-to-many relationships
 --------------------------

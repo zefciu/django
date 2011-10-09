@@ -379,7 +379,9 @@ Takes extra arguments:
 .. attribute:: TypedChoiceField.empty_value
 
     The value to use to represent "empty." Defaults to the empty string;
-    ``None`` is another common choice here.
+    ``None`` is another common choice here. Note that this value will not be
+    coerced by the function given in the ``coerce`` argument, so choose it
+    accordingly.
 
 ``DateField``
 ~~~~~~~~~~~~~
@@ -508,9 +510,9 @@ given length.
     * Error message keys: ``required``, ``invalid``, ``missing``, ``empty``,
       ``max_length``
 
-Has two optional arguments for validation, ''max_length'' and 
-''allow_empty_file''. If provided, these ensure that the file name is at 
-most the given length, and that validation will succeed even if the file 
+Has two optional arguments for validation, ``max_length`` and
+``allow_empty_file``. If provided, these ensure that the file name is at
+most the given length, and that validation will succeed even if the file
 content is empty.
 
 To learn more about the ``UploadedFile`` object, see the :doc:`file uploads
@@ -798,6 +800,11 @@ Takes the following optional arguments:
 
     If ``True``, the validator will attempt to load the given URL, raising
     ``ValidationError`` if the page gives a 404. Defaults to ``False``.
+
+.. deprecated:: 1.4
+
+   ``verify_exists`` was deprecated for security reasons and will be removed in
+   Django 1.5. This deprecation also removes ``validator_user_agent``.
 
 .. attribute:: URLField.validator_user_agent
 

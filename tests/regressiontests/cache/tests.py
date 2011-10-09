@@ -147,6 +147,7 @@ class DummyCacheTests(unittest.TestCase):
     def test_set_many(self):
         "set_many does nothing for the dummy cache backend"
         self.cache.set_many({'a': 1, 'b': 2})
+        self.cache.set_many({'a': 1, 'b': 2}, timeout=2, version='1')
 
     def test_delete_many(self):
         "delete_many does nothing for the dummy cache backend"
@@ -1590,6 +1591,8 @@ TestWithTemplateResponse = override_settings(
 
 class TestEtagWithAdmin(TestCase):
     # See https://code.djangoproject.com/ticket/16003
+    urls = "regressiontests.admin_views.urls"
+
     def test_admin(self):
         with self.settings(USE_ETAGS=False):
             response = self.client.get('/test_admin/admin/')

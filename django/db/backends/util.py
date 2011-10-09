@@ -125,11 +125,6 @@ def typecast_timestamp(s): # does NOT store time zone information
     return datetime.datetime(int(dates[0]), int(dates[1]), int(dates[2]),
         int(times[0]), int(times[1]), int(seconds), int((microseconds + '000000')[:6]))
 
-def typecast_boolean(s):
-    if s is None: return None
-    if not s: return False
-    return str(s)[0].lower() == 't'
-
 def typecast_decimal(s):
     s = py3_string_conversion(s)
     if s is None or s == '':
@@ -139,9 +134,6 @@ def typecast_decimal(s):
 ###############################################
 # Converters from Python to database (string) #
 ###############################################
-
-def rev_typecast_boolean(obj, d):
-    return obj and '1' or '0'
 
 def rev_typecast_decimal(d):
     if d is None:

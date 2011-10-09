@@ -196,7 +196,8 @@ class HttpRequest(object):
     def get_host(self):
         """Returns the HTTP host using the environment or request headers."""
         # We try three options, in order of decreasing preference.
-        if 'HTTP_X_FORWARDED_HOST' in self.META:
+        if settings.USE_X_FORWARDED_HOST and (
+            'HTTP_X_FORWARDED_HOST' in self.META):
             host = self.META['HTTP_X_FORWARDED_HOST']
         elif 'HTTP_HOST' in self.META:
             host = self.META['HTTP_HOST']
@@ -547,12 +548,7 @@ class HttpResponse(object):
         if not content_type:
             content_type = "%s; charset=%s" % (settings.DEFAULT_CONTENT_TYPE,
                     self._charset)
-        if not isinstance(content, basestring) and hasattr(content, '__iter__'):
-            self._container = content
-            self._is_string = False
-        else:
-            self._container = [content]
-            self._is_string = True
+        self.content = content
         self.cookies = SimpleCookie()
         if status:
             self.status_code = status
@@ -656,12 +652,16 @@ class HttpResponse(object):
 
     def _get_content(self):
         if self.has_header('Content-Encoding'):
-            return ''.join(self._container)
-        return smart_str(''.join(self._container), self._charset)
+            return ''.join([str(e) for e in self._container])
+        return ''.join([smart_str(e, self._charset) for e in self._container])
 
     def _set_content(self, value):
-        self._container = [value]
-        self._is_string = True
+        if hasattr(value, '__iter__'):
+            self._container = value
+            self._base_content_is_iter = True
+        else:
+            self._container = [value]
+            self._base_content_is_iter = False
 
     content = property(_get_content, _set_content)
 
@@ -682,7 +682,7 @@ class HttpResponse(object):
     # The remaining methods partially implement the file-like object interface.
     # See http://docs.python.org/lib/bltin-file-objects.html
     def write(self, content):
-        if not self._is_string:
+        if self._base_content_is_iter:
             raise Exception("This %s instance is not writable" % self.__class__)
         self._container.append(content)
 
@@ -690,9 +690,9 @@ class HttpResponse(object):
         pass
 
     def tell(self):
-        if not self._is_string:
+        if self._base_content_is_iter:
             raise Exception("This %s instance cannot tell its position" % self.__class__)
-        return sum([len(chunk) for chunk in self._container])
+        return sum([len(str(chunk)) for chunk in self._container])
 
 class HttpResponseRedirect(HttpResponse):
     status_code = 302
