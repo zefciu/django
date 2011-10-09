@@ -15,6 +15,7 @@ from django.core.urlresolvers import set_script_prefix
 from django.utils import datastructures
 from django.utils.encoding import force_unicode, iri_to_uri
 from django.utils.log import getLogger
+from django.utils.py3 import b
 
 logger = getLogger('django.request')
 
@@ -84,14 +85,14 @@ class LimitedStream(object):
     def __init__(self, stream, limit, buf_size=64 * 1024 * 1024):
         self.stream = stream
         self.remaining = limit
-        self.buffer = ''
+        self.buffer = b('')
         self.buf_size = buf_size
 
     def _read_limited(self, size=None):
         if size is None or size > self.remaining:
             size = self.remaining
         if size == 0:
-            return ''
+            return b('')
         result = self.stream.read(size)
         self.remaining -= len(result)
         return result
@@ -99,13 +100,13 @@ class LimitedStream(object):
     def read(self, size=None):
         if size is None:
             result = self.buffer + self._read_limited()
-            self.buffer = ''
+            self.buffer = b('')
         elif size < len(self.buffer):
             result = self.buffer[:size]
             self.buffer = self.buffer[size:]
         else: # size >= len(self.buffer)
             result = self.buffer + self._read_limited(size - len(self.buffer))
-            self.buffer = ''
+            self.buffer = b('')
         return result
 
     def readline(self, size=None):

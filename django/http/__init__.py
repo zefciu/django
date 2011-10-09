@@ -7,9 +7,12 @@ from pprint import pformat
 from urllib import urlencode, quote
 from urlparse import urljoin
 try:
-    from cStringIO import StringIO
+    from io import BytesIO as StringIO
 except ImportError:
-    from StringIO import StringIO
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
 try:
     # The mod_python version is more efficient, so try importing it first.
     from mod_python.util import parse_qsl
@@ -20,6 +23,7 @@ except ImportError:
     except ImportError:
         # Python 2.5.  Works on Python 2.6 but raises PendingDeprecationWarning
         from cgi import parse_qsl
+from django.utils.py3 import b
 
 import Cookie
 # httponly support exists in Python 2.6's Cookie library,
@@ -574,6 +578,9 @@ class HttpResponse(object):
                 except UnicodeError, e:
                     e.reason += ', HTTP response headers must be in US-ASCII format'
                     raise
+            elif sys.version_info >= (3,0) and isinstance(value, bytes):
+                # str(<bytes>) would result in "b'...'"
+                value = value.decode()
             else:
                 value = str(value)
             if '\n' in value or '\r' in value:
@@ -652,11 +659,13 @@ class HttpResponse(object):
 
     def _get_content(self):
         if self.has_header('Content-Encoding'):
-            return ''.join([str(e) for e in self._container])
-        return ''.join([smart_str(e, self._charset) for e in self._container])
+            return b('').join([bytes(e) for e in self._container])
+        return b('').join([smart_str(e, self._charset) for e in self._container])
 
     def _set_content(self, value):
-        if hasattr(value, '__iter__'):
+        # in 3.x, bytes and unicode has __iter__, but they shouldn't be considered
+        # collections here
+        if hasattr(value, '__iter__') and not isinstance(value, (bytes, unicode)):
             self._container = value
             self._base_content_is_iter = True
         else:

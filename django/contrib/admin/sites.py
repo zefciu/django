@@ -12,6 +12,7 @@ from django.template.response import TemplateResponse
 from django.utils.safestring import mark_safe
 from django.utils.text import capfirst
 from django.utils.translation import ugettext as _
+from django.utils.py3 import dictvalues
 from django.views.decorators.cache import never_cache
 from django.conf import settings
 
@@ -357,7 +358,7 @@ class AdminSite(object):
                         }
 
         # Sort the apps alphabetically.
-        app_list = app_dict.values()
+        app_list = dictvalues(app_dict)
         app_list.sort(key=lambda x: x['name'])
 
         # Sort the models alphabetically within each app.

@@ -2,6 +2,7 @@
 Django's standard crypto functions and utilities.
 """
 
+import sys
 import hashlib
 import hmac
 from django.conf import settings
@@ -37,6 +38,10 @@ def constant_time_compare(val1, val2):
     if len(val1) != len(val2):
         return False
     result = 0
-    for x, y in zip(val1, val2):
-        result |= ord(x) ^ ord(y)
+    if (sys.version_info >= (3,0)) and (type(val1) is type(val2) is bytes):
+        for x, y in zip(val1, val2):
+            result |= x ^ y
+    else:
+        for x, y in zip(val1, val2):
+            result |= ord(x) ^ ord(y)
     return result == 0

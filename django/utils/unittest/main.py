@@ -218,7 +218,7 @@ class TestProgram(object):
             installHandler()
         if self.testRunner is None:
             self.testRunner = runner.TextTestRunner
-        if isinstance(self.testRunner, (type, types.ClassType)):
+        if isinstance(self.testRunner, type) or hasattr(types, 'ClassType') and isinstance(self.testRunner, types.ClassType):
             try:
                 testRunner = self.testRunner(verbosity=self.verbosity,
                                              failfast=self.failfast,

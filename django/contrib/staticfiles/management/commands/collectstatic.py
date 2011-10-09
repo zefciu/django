@@ -150,13 +150,16 @@ Type 'yes' to continue, or 'no' to cancel: """
                 'unmodified': (self.unmodified_files and ', %s unmodified'
                                % unmodified_count or ''),
             }
-            self.stdout.write(smart_str(summary))
+            if sys.version_info < (3,0):
+                summary = smart_str(summary)
+            self.stdout.write(summary)
 
     def log(self, msg, level=2):
         """
         Small log helper
         """
-        msg = smart_str(msg)
+        if sys.version_info < (3,0):
+            msg = smart_str(msg)
         if not msg.endswith("\n"):
             msg += "\n"
         if self.verbosity >= level:

@@ -90,7 +90,7 @@ class Truncator(SimpleLazyObject):
         ellipsis (...).
         """
         length = int(num)
-        text = unicodedata.normalize('NFC', self._wrapped)
+        text = unicodedata.normalize('NFC', unicode(self))
 
         # Calculate the length to truncate to (max length - end_text length)
         truncate_len = length
@@ -137,7 +137,7 @@ class Truncator(SimpleLazyObject):
 
         Newlines in the string will be stripped.
         """
-        words = self._wrapped.split()
+        words = self.split()
         if len(words) > length:
             words = words[:length]
             return self.add_truncation_text(u' '.join(words), truncate)
@@ -163,7 +163,7 @@ class Truncator(SimpleLazyObject):
         words = 0
         open_tags = []
         while words <= length:
-            m = re_words.search(self._wrapped, pos)
+            m = re_words.search(unicode(self), pos)
             if not m:
                 # Checked through whole string
                 break
@@ -199,8 +199,8 @@ class Truncator(SimpleLazyObject):
                 open_tags.insert(0, tagname)
         if words <= length:
             # Don't try to close tags if we don't need to truncate
-            return self._wrapped
-        out = self._wrapped[:end_text_pos]
+            return unicode(self)
+        out = unicode(self)[:end_text_pos]
         truncate_text = self.add_truncation_text('', truncate)
         if truncate_text:
             out += truncate_text

@@ -99,7 +99,7 @@ class SessionBase(object):
         encoded_data = base64.decodestring(session_data.encode('ascii'))
         try:
             # could produce ValueError if there is no ':'
-            hash, pickled = encoded_data.split(':', 1)
+            hash, pickled = encoded_data.split(b(':'), 1)
             expected_hash = self._hash(pickled)
             if not constant_time_compare(hash, expected_hash):
                 raise SuspiciousOperation("Session data corrupted")

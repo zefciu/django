@@ -281,8 +281,8 @@ else:
     ugettext = gettext
 
 def pgettext(context, message):
-    result = do_translate(
-        u"%s%s%s" % (context, CONTEXT_SEPARATOR, message), 'ugettext')
+    result = ugettext(
+        u"%s%s%s" % (context, CONTEXT_SEPARATOR, message))
     if CONTEXT_SEPARATOR in result:
         # Translation not found
         result = message

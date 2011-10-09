@@ -197,7 +197,7 @@ class RequestFactory(object):
             'SERVER_PROTOCOL':   'HTTP/1.1',
             'wsgi.version':      (1,0),
             'wsgi.url_scheme':   'http',
-            'wsgi.input':        FakePayload(''),
+            'wsgi.input':        FakePayload(b('')),
             'wsgi.errors':       self.errors,
             'wsgi.multiprocess': True,
             'wsgi.multithread':  False,
