@@ -4,6 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
 from django.utils.encoding import force_unicode
 from django.utils.translation import ugettext as _
+from django.utils.functional import lazy
 from django.utils import timezone
 from django.views.generic.base import View
 from django.views.generic.detail import BaseDetailView, SingleObjectTemplateResponseMixin
@@ -203,19 +204,24 @@ class BaseDateListView(MultipleObjectMixin, DateMixin, View):
 
     def get_date_list(self, queryset, date_type):
         """
-        Get a date list by calling `queryset.dates()`, checking along the way
-        for empty lists that aren't allowed.
+        Get lazily a date list by calling `queryset.dates()`, checking along
+        the way for empty lists that aren't allowed. 
         """
         date_field = self.get_date_field()
         allow_empty = self.get_allow_empty()
 
         date_list = queryset.dates(date_field, date_type)[::-1]
-        if date_list is not None and not date_list and not allow_empty:
+        if not (queryset.count() or allow_empty):
             name = force_unicode(queryset.model._meta.verbose_name_plural)
             raise Http404(_(u"No %(verbose_name_plural)s available") %
                           {'verbose_name_plural': name})
 
-        return date_list
+
+        return lazy(
+            lambda: queryset.dates(date_field, date_type)[::-1],
+            list, models.query.DateQuerySet
+        )()
+
 
     def get_context_data(self, **kwargs):
         """
@@ -242,7 +248,7 @@ class BaseArchiveIndexView(BaseDateListView):
         qs = self.get_dated_queryset()
         date_list = self.get_date_list(qs, 'year')
 
-        if date_list:
+        if qs.count():
             object_list = qs.order_by('-' + self.get_date_field())
         else:
             object_list = qs.none()

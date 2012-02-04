@@ -26,6 +26,15 @@ numeric_days_info_dict = dict(date_based_info_dict, day_format='%d')
 
 date_based_datefield_info_dict = dict(date_based_info_dict, queryset=DateArticle.objects.all())
 
+archive_index_info_dict = dict(
+    allow_future=True, **date_based_info_dict
+)
+del archive_index_info_dict['month_format']
+
+archive_index_disallow_empty_info_dict = dict(
+    allow_empty=False, **archive_index_info_dict
+)
+
 urlpatterns = patterns('',
     (r'^accounts/login/$', 'django.contrib.auth.views.login', {'template_name': 'login.html'}),
     (r'^accounts/logout/$', 'django.contrib.auth.views.logout'),
@@ -37,6 +46,10 @@ urlpatterns = patterns('',
 
 # Date-based generic views.
 urlpatterns += patterns('django.views.generic.date_based',
+    (r'^date_based/archive_index/$', 'archive_index',
+        archive_index_disallow_empty_info_dict),
+    (r'^date_based/archive_index/allow_empty/$', 'archive_index',
+        archive_index_info_dict),
     (r'^date_based/object_detail/(?P<year>\d{4})/(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<slug>[-\w]+)/$',
         'object_detail',
         dict(slug_field='slug', **date_based_info_dict)),

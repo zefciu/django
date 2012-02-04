@@ -5,8 +5,10 @@ from django.template import loader, RequestContext
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.xheaders import populate_xheaders
 from django.db.models.fields import DateTimeField
+from django.db.models.query import DateQuerySet
 from django.http import Http404, HttpResponse
 from django.utils import timezone
+from django.utils.functional import lazy
 
 import warnings
 warnings.warn(
@@ -33,11 +35,14 @@ def archive_index(request, queryset, date_field, num_latest=15,
     model = queryset.model
     if not allow_future:
         queryset = queryset.filter(**{'%s__lte' % date_field: timezone.now()})
-    date_list = queryset.dates(date_field, 'year')[::-1]
-    if not date_list and not allow_empty:
+    date_list = lazy(
+        lambda: queryset.dates(date_field, 'year')[::-1],
+        list, DateQuerySet
+    )()
+    if not (queryset.count() or allow_empty):
         raise Http404("No %s available" % model._meta.verbose_name)
 
-    if date_list and num_latest:
+    if queryset.count() and num_latest:
         latest = queryset.order_by('-'+date_field)[:num_latest]
     else:
         latest = None

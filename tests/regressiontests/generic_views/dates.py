@@ -4,6 +4,7 @@ import datetime
 
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
+from django.utils.functional import Promise
 
 from .models import Book
 
@@ -23,6 +24,7 @@ class ArchiveIndexViewTests(TestCase):
     def test_archive_view(self):
         res = self.client.get('/dates/books/')
         self.assertEqual(res.status_code, 200)
+        assert isinstance(res.context['date_list'], Promise)
         self.assertEqual(res.context['date_list'], Book.objects.dates('pubdate', 'year')[::-1])
         self.assertEqual(list(res.context['latest']), list(Book.objects.all()))
         self.assertTemplateUsed(res, 'generic_views/book_archive.html')

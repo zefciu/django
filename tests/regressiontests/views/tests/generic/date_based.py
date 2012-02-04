@@ -5,6 +5,39 @@ from django.test import TestCase
 from datetime import datetime, date
 from datetime import timedelta
 from regressiontests.views.models import Article, Author, DateArticle
+from django.utils.functional import Promise
+
+class ArchiveIndexTest(TestCase):
+    fixtures=['testdata.json']
+    urls = 'regressiontests.views.generic_urls'
+
+    def setUp(self):
+        self.save_warnings_state()
+        warnings.filterwarnings('ignore', category=DeprecationWarning,
+                                module='django.views.generic.date_based')
+
+    def tearDown(self):
+        self.restore_warnings_state()
+
+    def test_get_archive_view(self):
+        res = self.client.get('/date_based/archive_index/')
+        assert isinstance(res.context['date_list'], Promise)
+        self.assertEqual(
+            res.context['date_list'],
+            Article.objects.dates('date_created', 'year')[::-1]
+        )
+
+    def test_empty_archive_view(self):
+        Article.objects.all().delete()
+        res = self.client.get('/date_based/archive_index/')
+        self.assertEqual(res.status_code, 404)
+
+    def test_allow_empty_archive_view(self):
+        Article.objects.all().delete()
+        res = self.client.get('/date_based/archive_index/allow_empty/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(list(res.context['date_list']), [])
+        self.assertTemplateUsed(res, 'views/article_archive.html')
 
 class ObjectDetailTest(TestCase):
     fixtures = ['testdata.json']
