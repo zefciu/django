@@ -1189,3 +1189,41 @@ class ClearableFileInputTests(TestCase):
                 data={'myfile-clear': True},
                 files={'myfile': f},
                 name='myfile'), f)
+
+    def test_nullable_rendering(self):
+        """
+        Test if NullableWidget is rendered correctly.
+        """
+        w= NullableWidget(TextInput())
+        self.assertHTMLEqual(
+            w.render('email', ''),
+            u'<input type="checkbox" checked="checked" name="email_0" />'
+            u'<input type="text" name="email_1" />'
+        )
+        self.assertHTMLEqual(
+            w.render('email', 'test@example.com'),
+            u'<input type="checkbox" checked="checked" name="email_0" />'
+            u'<input type="text" name="email_1" value="test@example.com" />'
+        )
+        self.assertHTMLEqual(
+            w.render('email', None),
+            u'<input type="checkbox" name="email_0" />'
+            u'<input type="text" name="email_1" />'
+        )
+
+    def test_nullable_rendering(self):
+        """
+        Test if NullableWidget is rendered correctly.
+        """
+        w= NullableWidget(TextInput())
+        self.assertEqual(w.value_from_datadict(
+            data={'email_0': True, 'email_1': 'test@example.net'},
+            files={},
+            name='email'
+        ), 'test@example.net')
+        
+        self.assertEqual(w.value_from_datadict(
+            data={'email_0': False, 'email_1': 'test@example.net'},
+            files={},
+            name='email'
+        ), None)

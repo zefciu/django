@@ -24,7 +24,7 @@ __all__ = (
     'FileInput', 'DateInput', 'DateTimeInput', 'TimeInput', 'Textarea', 'CheckboxInput',
     'Select', 'NullBooleanSelect', 'SelectMultiple', 'RadioSelect',
     'CheckboxSelectMultiple', 'MultiWidget',
-    'SplitDateTimeWidget',
+    'SplitDateTimeWidget', 'NullableWidget',
 )
 
 MEDIA_TYPES = ('css','js')
@@ -900,3 +900,30 @@ class SplitHiddenDateTimeWidget(SplitDateTimeWidget):
         for widget in self.widgets:
             widget.input_type = 'hidden'
             widget.is_hidden = True
+
+class NullableWidget(MultiWidget):
+    """
+    A Widget that wraps another Widget and renders it along with a checkbox
+    that unchecked means that the value should be None (NULL) [#4136]
+    """
+    def __init__(self, subwidget, attrs=None):
+        self.checkbox = CheckboxInput()
+        self.subwidget = subwidget
+        super(NullableWidget, self).__init__(
+            [self.checkbox, self.subwidget], attrs
+        )
+
+    def decompress(self, value):
+        if value is None:
+            return [False, '']
+        else:
+            return [True, value]
+
+    def value_from_datadict(self, data, files, name):
+        is_set, value = super(NullableWidget, self).value_from_datadict(
+            data, files, name
+        )
+        if is_set:
+            return value
+        else:
+            return None
